@@ -1,76 +1,65 @@
-import axios from 'axios'
+// gcuwomd/wxw_request_submission/WXW_request_submission-e4248e0335afb39faeb0a9f495e1e51a333ef66f/wxw_-request_-submission/wxw_-request_-submission/WXW_Request_Submission/src/api/admin.js
 
-const request = axios.create({
-  baseURL: '', // 根据 vite 代理配置
-  timeout: 5000
-})
+import request from '@/utils/request' // 引入封装好的 request
 
-// 1. 获取主任务列表 (管理员首页)
-// 接口: GET /api/administrator/get/allMain
+// 1. 获取主任务列表
 export const fetchMainTasks = (params = { page: 1, pageSize: 100 }) => {
   return request({
-    url: '/api/administrator/get/allMain',
+    url: '/check/api/administrator/get/allMain', // 添加 /check
     method: 'get',
     params
   })
 }
 
-// 2. 根据主任务ID获取其下的所有子任务 (分配页面用)
-// 接口: GET /api/administrator/get/allSonTask
+// 2. 根据主任务ID获取子任务
 export const fetchSubTasks = (mainTaskId) => {
   return request({
-    url: '/api/administrator/get/allSonTask',
+    url: '/check/api/administrator/get/allSonTask', // 添加 /check
     method: 'get',
     params: { mainTaskId }
   })
 }
 
-// 3. 发布(创建)子任务
-// 接口: POST /api/administrator/post/sonTask
+// 3. 发布子任务
 export const createSubTask = (data) => {
   return request({
-    url: '/api/administrator/post/sonTask',
+    url: '/check/api/administrator/post/sonTask', // 添加 /check
     method: 'post',
-    data // 注意：文档显示 body 参数，所以用 data
+    data
   })
 }
 
 // 4. 删除子任务
-// 接口: DELETE /api/administrator/post/deleteSonTask
 export const deleteSubTask = (sonTaskId) => {
   return request({
-    url: '/api/administrator/post/deleteSonTask',
+    url: '/check/api/administrator/post/deleteSonTask', // 添加 /check
     method: 'delete',
     params: { sonTaskId }
   })
 }
 
-// 5. 修改子任务状态 (审核：通过/打回)
-// 接口: POST /api/administrator/update/sonStatus
-// status: 2-已完成(通过), 3-已打回
+// 5. 审核子任务 (通过/打回)
 export const auditSubTask = (sonTaskId, status) => {
   return request({
-    url: '/api/administrator/update/sonStatus',
+    url: '/check/api/administrator/update/sonStatus', // 添加 /check
     method: 'post',
     params: { sonTaskId, status }
   })
 }
 
-// 6. 获取所有干事列表 (用于下拉框选择)
-// 接口: GET /api/administrator/get/allUser
+// 6. 获取所有干事
 export const fetchAllOfficers = () => {
   return request({
-    url: '/api/administrator/get/allUser',
+    url: '/check/api/administrator/get/allUser', // 添加 /check
     method: 'get',
-    params: { departmentId: 1 } // 假设默认获取某部门，或者根据登录人信息动态传
+    params: { departmentId: 1 }
   })
 }
 
-// 7. 修改主任务状态 (例如：子任务都做完了，手动把主任务改为已完成)
-// 接口: POST /api/administrator/update/mainStatus
+// 7. 修改主任务状态
 export const updateMainStatus = (mainTaskId, status) => {
   return request({
-    url: '/api/administrator/update/mainStatus',
+    url: '/check/api/administrator/update/mainStatus', // 添加 /check
     method: 'post',
     params: { mainTaskId, status }
   })

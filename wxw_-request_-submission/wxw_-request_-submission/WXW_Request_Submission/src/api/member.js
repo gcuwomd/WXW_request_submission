@@ -1,39 +1,30 @@
-import axios from 'axios'
+// gcuwomd/wxw_request_submission/WXW_request_submission-e4248e0335afb39faeb0a9f495e1e51a333ef66f/wxw_-request_-submission/wxw_-request_-submission/WXW_Request_Submission/src/api/member.js
 
-// 配置基础路径，如果在 vite.config.js 中配置了代理，这里可以是空字符串或者 '/api'
-// 假设 vite 配置了代理 /api -> 后端地址
-const request = axios.create({
-  baseURL: '', // 根据你的 vite 代理配置调整，通常保持为空让代理处理
-  timeout: 5000
-})
+import request from '@/utils/request' // 引入封装好的 request
 
-// 1. 获取干事被分配的任务列表
-// 对应接口: GET /api/officer/get/myTasks
+// 1. 获取干事任务列表
 export const fetchMemberTasks = (officerName) => {
   return request({
-    url: '/api/officer/get/myTasks',
+    url: '/check/api/officer/get/myTasks', // 添加 /check
     method: 'get',
-    params: { officerAddress: officerName } // 文档参数名为 officerAddress，实际含义为干事姓名
+    params: { officerAddress: officerName }
   })
 }
 
-// 2. 干事查看任务附件列表
-// 对应接口: GET /api/officer/get/AnnexList
+// 2. 查看附件列表
 export const fetchTaskAttachments = (breakdownId) => {
   return request({
-    url: '/api/officer/get/AnnexList',
+    url: '/check/api/officer/get/AnnexList', // 添加 /check (注意文档里有个 typo "checkl"，这里修正为 check)
     method: 'get',
     params: { breakdownId }
   })
 }
 
-// 3. 干事修改任务状态 (提交任务)
-// 对应接口: POST /api/officer/post/sonStatus
+// 3. 提交任务/修改状态
 export const updateTaskStatus = (breakdownId, status) => {
   return request({
-    url: '/api/officer/post/sonStatus',
+    url: '/check/api/officer/post/sonStatus', // 添加 /check
     method: 'post',
-    // 文档显示这两个参数是 query 参数，所以用 params
     params: { 
       breakdownId: breakdownId,
       status: status 
@@ -41,5 +32,7 @@ export const updateTaskStatus = (breakdownId, status) => {
   })
 }
 
-// 4. 附件上传地址 (用于 el-upload 组件的 action 属性)
-export const uploadUrl = '/api/officer/add/Annexs'
+// 4. 上传地址 (用于 el-upload action)
+// 注意：el-upload 组件会自动请求这个地址，它默认不会经过 axios 拦截器！
+// 所以你需要在 el-upload 组件里手动添加 :headers="{ Authorization: 'Bearer ' + token }"
+export const uploadUrl = '/check/api/officer/add/Annexs'

@@ -11,7 +11,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-     AutoImport({
+    AutoImport({
       resolvers: [ElementPlusResolver()],
     }),
     Components({
@@ -23,4 +23,15 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    host: '0.0.0.0', // 允许通过 IP 访问
+    port: 5173,      // 前端端口
+    proxy: {
+      // 匹配所有以 /check 开头的请求
+      '/check': {
+        target: 'http://117.72.16.195:6600', // 后端部署地址
+        changeOrigin: true, // 开启代理，允许跨域
+      }
+    }
+  }
 })
