@@ -1,288 +1,159 @@
 <template>
-  <div class="subtask-modal">
-    <div class="modal-mask"></div>
-    <div class="modal-container">
-      <div class="modal-content">
-        <h2 class="modal-title">创建子任务</h2>
-        
-        <el-form ref="ruleFormRef" class="subtask-form" :model="ruleForm" :rules="rules"
-                label-width="100px" label-position="left">
-          <el-form-item label="任务名称" prop="name">
-            <el-input v-model="ruleForm.name" placeholder="请输入任务名称" />
-          </el-form-item>
-          
-          
-          <el-form-item label="被委托干事" prop="assignee" required>
-            <el-select 
-              v-model="ruleForm.assignee" 
-              filterable
-              placeholder="请选择被委托干事" 
-              style="width: 100%">
-              <el-option 
-                v-for="item in assigneeOptions" 
-                :key="item.value" 
-                :label="item.label" 
-                :value="item.value" />
-            </el-select>
-          </el-form-item>
-          
-          <el-form-item label="截止时间" required>
-            <div class="datetime-picker">
-              <el-date-picker
-                v-model="ruleForm.date1"
-                type="date"
-                placeholder="选择日期"
-                style="width: 315px; margin-bottom: 10px;"
-              />
-              <el-time-picker
-                v-model="ruleForm.date2"
-                placeholder="选择时间"
-                style="width: 317px;"
-              />
-            </div>
-          </el-form-item>
-          
-          <el-form-item label="任务附件">
-            <el-upload
-              class="upload-demo"
-              drag
-              action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
-              multiple>
-              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-              <div class="el-upload__text">
-                拖拽文件到此处或<em>点击上传</em>
-              </div>
-            </el-upload>
-          </el-form-item>
-          
-          <el-form-item label="任务描述" prop="desc">
-            <el-input 
-              v-model="ruleForm.desc" 
-              type="textarea" 
-              :rows="3"
-              placeholder="请输入详细的任务描述和要求..."
-              resize="none" />
-          </el-form-item>
-          
-          <div style="text-align: center;">
-            <el-button type="primary" @click="submitForm">
-              创建
-            </el-button>
-            <el-button @click="resetForm">重置</el-button>
-          </div>
-        </el-form>
-        <div class="bottom-button-container">
-          <el-button type="primary" @click="close">关闭</el-button>
-        </div>
-      </div>
+    <div class="common-layout">
+        <el-container class="float-window">
+            <el-main class="float-window-content">
+                <div class="content-wrapper">
+                    <div class="left">
+                        <p class="text">工单ID: {{ taskData?.id }}</p>
+                        <p class="text">任务名称: {{ taskData?.taskName }}</p>
+                        <p class="text">委托老师: {{ taskData?.teacher }} ({{ taskData?.phoneNumber }})</p>
+                        <p class="text">地址: {{ taskData?.officeAddress }}</p>
+                        <div class="need">
+                            <p class="text" style="margin: 0;">任务需求：</p>
+                            <div class="need-box">{{ taskData?.taskName }} (详细需求请调用详情接口)</div>
+                        </div>
+                        <p class="text">截止时间：{{ taskData?.dateLimit }}</p>
+                    </div>
+
+                    <div class="right">
+                        <div v-if="taskData?.tag === '待受理' || taskData?.tag === '进行中'" style="width: 100%">
+                            <h3>分配详情</h3>
+                            <el-table :data="subTaskData" height="300" style="width: 100%">
+                                <template #empty>
+                                    <el-empty description="暂未分配给干事" :image-size="80" />
+                                </template>
+                                <el-table-column prop="taskName" label="子任务名" />
+                                <el-table-column prop="officer" label="干事" />
+                                <el-table-column prop="statusTag" label="状态" />
+                                <el-table-column label="操作" width="160">
+                                    <template #default="scope">
+                                        <el-button v-if="scope.row.status === 1" type="primary" size="small" @click="openAuditDetail(scope.row)">审核</el-button>
+                                        <el-button v-else size="small" @click="openAuditDetail(scope.row)">查看</el-button>
+                                        
+                                        <el-popconfirm title="确定删除此子任务?" @confirm="handleDelete(scope.row)">
+                                            <template #reference>
+                                                <el-button type="danger" :icon="Delete" circle size="small" />
+                                            </template>
+                                        </el-popconfirm>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+
+                            <div style="margin-top: 20px; text-align: center;">
+                                <el-button type="primary" @click="showSubTaskForm = true">分配新干事</el-button>
+                                <el-button type="success" @click="finishMainTask">主任务结项</el-button>
+                            </div>
+                        </div>
+
+                        <div v-else style="text-align: center;">
+                            <img src="/image/finsh.png" style="width: 80%;">
+                            <h2>主任务已完成</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bottom-button-container">
+                    <el-button @click="close">关闭窗口</el-button>
+                </div>
+
+                <FloatSubTask 
+                    v-if="showSubTaskForm" 
+                    :main-task-id="taskData?.id" 
+                    @close="showSubTaskForm = false"
+                    @submit="refreshSubTasks" 
+                />
+
+                <FloatDetail 
+                    v-if="showDetail" 
+                    :detail-data="currentDetail" 
+                    @close="showDetail = false"
+                    @audited="refreshSubTasks"
+                    style="z-index: 11000;" 
+                />
+            </el-main>
+        </el-container>
     </div>
-  </div>
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
-import { fetchDetail } from '../../api' // 引入与 TaskList 相同的 API
+import { ref, onMounted, watch } from 'vue'
+import { Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import FloatSubTask from './subTask.vue'
+import FloatDetail from './Detail.vue'
+import { fetchSubTasks, deleteSubTask, updateMainStatus } from '../../api/admin'
 
-// 表单接口
-interface RuleForm {
-  name: string
-  assignee: string
-  date1: string
-  date2: string
-  desc: string
-}
+const props = defineProps<{ taskData: any }>()
+const emit = defineEmits(['close'])
 
-const ruleFormRef = ref<FormInstance>()
-const ruleForm = reactive<RuleForm>({
-  name: '',
-  assignee: '',
-  date1: '',
-  date2: '',
-  desc: '',
-})
+const subTaskData = ref([])
+const showSubTaskForm = ref(false)
+const showDetail = ref(false)
+const currentDetail = ref(null)
 
-// 被委托干事选项
-const assigneeOptions = ref<Array<{value: string, label: string}>>([])
+const close = () => emit('close')
 
-// 表单规则
-const rules = reactive<FormRules<RuleForm>>({
-  name: [
-    { required: true, message: '请输入任务名称', trigger: 'blur' },
-    { min: 3, max: 50, message: '长度在 3 到 50 个字符', trigger: 'blur' },
-  ],
-  assignee: [
-    {
-      required: true,
-      message: '请选择被委托干事',
-      trigger: 'change',
-    },
-  ],
-  date1: [
-    {
-      type: 'date',
-      required: true,
-      message: '请选择日期',
-      trigger: 'change',
-    },
-  ],
-  date2: [
-    {
-      type: 'date',
-      required: true,
-      message: '请选择时间',
-      trigger: 'change',
-    },
-  ],
-  desc: [
-    { required: true, message: '请输入任务描述', trigger: 'blur' },
-  ],
-})
+// 状态映射
+const statusMap = { 0: '进行中', 1: '待审核', 2: '已完成', 3: '已打回' }
 
-// 获取干事名单（与 TaskList 相同的方法）
-async function getMemberNames() {
-  try {
-    const response = await fetchDetail()
-    assigneeOptions.value = response.data.map(item => ({
-      value: item.name,
-      label: item.name,
-    }))
-  } catch (error) {
-    console.error('没有获取到受理干事的姓名:', error)
-    assigneeOptions.value = []
-  }
-}
-
-
-// 重置表单
-const resetForm = () => {
-  if (ruleFormRef.value) {
-    ruleFormRef.value.resetFields()
-  }
-}
-
-// 提交表单
-const submitForm = () => {
-  if (!ruleFormRef.value) return
-  
-  ruleFormRef.value.validate((valid) => {
-    if (valid) {
-      console.log('表单数据:', ruleForm)
-      // 这里可以添加提交逻辑
-      emit('submit', ruleForm)
-      close()
-    } else {
-      console.log('表单验证失败')
+// 获取子任务列表
+const refreshSubTasks = async () => {
+    if (!props.taskData?.id) return
+    try {
+        const res = await fetchSubTasks(props.taskData.id)
+        const list = res.data || []
+        subTaskData.value = list.map(item => ({
+            ...item,
+            id: item.sonTaskId,
+            statusTag: statusMap[item.status] || '未知'
+        }))
+    } catch (e) {
+        console.error(e)
     }
-  })
 }
 
-// 关闭弹窗
-const emit = defineEmits(['close', 'submit'])
-const close = () => {
-  emit('close')
+// 删除子任务
+const handleDelete = async (row) => {
+    try {
+        await deleteSubTask(row.id)
+        ElMessage.success('删除成功')
+        refreshSubTasks()
+    } catch (e) {
+        ElMessage.error('删除失败')
+    }
 }
 
-// 挂载时获取干事名单
+// 结项
+const finishMainTask = async () => {
+    try {
+        await updateMainStatus(props.taskData.id, "已完成")
+        ElMessage.success('主任务已标记为完成')
+        emit('close') // 关闭并刷新主列表
+    } catch (e) {
+        ElMessage.error('操作失败')
+    }
+}
+
+// 打开审核详情
+const openAuditDetail = (row) => {
+    currentDetail.value = row
+    showDetail.value = true
+}
+
 onMounted(() => {
-  getMemberNames()
+    refreshSubTasks()
 })
 </script>
 
 <style scoped>
-.subtask-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 9999;
-}
-
-.modal-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 800px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.modal-title {
-  text-align: center;
-  margin-bottom: 24px;
-  color: #303133;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.subtask-form {
-  width: 100%;
-}
-
-.datetime-picker {
-  display: flex;
-  flex-direction: space-between;
-  gap: 20px;
-}
-
-.form-actions .el-button {
-  margin: 0 8px;
-  min-width: 80px;
-}
-
-/* 上传区域样式 */
-:deep(.el-upload-dragger) {
-  width: 650px;
-  border-radius: 6px;
-}
-
-:deep(.el-upload__tip) {
-  text-align: center;
-  color: #909399;
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-/* 表单项样式 */
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #606266;
-}
-
-:deep(.el-input) {
-  border-radius: 4px;
-}
-
-:deep(.el-textarea__inner) {
-  border-radius: 4px;
-  resize: none;
-}
-
-.bottom-button-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #eaeaea;
-}
+/* 样式同前 */
+.common-layout { position: static; }
+.float-window { position: fixed; width: 75%; height: 90%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9000; }
+.float-window-content { padding: 30px; background: white; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; height: 100%; }
+.content-wrapper { display: flex; justify-content: space-between; flex: 1; overflow: hidden; }
+.left { width: 40%; padding-right: 20px; border-right: 1px solid #eee; overflow-y: auto; }
+.right { width: 58%; padding-left: 20px; overflow-y: auto; }
+.need-box { background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #eee; margin: 5px 0; }
+.text { margin: 8px 0; font-size: 14px; color: #333; line-height: 1.6; }
+.bottom-button-container { margin-top: 20px; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
 </style>

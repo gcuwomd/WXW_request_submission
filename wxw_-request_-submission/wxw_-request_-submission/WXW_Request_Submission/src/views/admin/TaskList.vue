@@ -64,8 +64,8 @@ import { ref, onMounted, computed } from 'vue'
 import FloatWindow from '../../views/admin/AssignTask.vue'
 import { fetchMainTasks } from '../../api'
 import "../../mock/mock.js"
-import { fetchDetail } from '../../api'
-import { fetchSubTask } from '../../api'
+// import { fetchDetail } from '../../api'
+// import { fetchSubTask } from '../../api'
 
 const currentPage = ref(1)
 const pageSize = ref(10)
