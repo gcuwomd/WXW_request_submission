@@ -1,16 +1,14 @@
 <script setup>
-import AdminLayout from '@/components/layout/AdminLayout.vue'
-// import AdminLayout from '@/views/admin/AssignTask.vue'
-import MemberLayout from '@/components/layout/MemberLayout.vue'
 </script>
 
 <template>
-  <AdminLayout if="isAdmin">
-  </AdminLayout>
-  <!-- <MemberLayout if="isMember">
-  </MemberLayout> -->
-  <!-- <RouterLink to="/TaskList"></RouterLink>
-  <RouterView /> -->
+  <RouterView />
 </template>
 
-<style></style>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+}
+</style>

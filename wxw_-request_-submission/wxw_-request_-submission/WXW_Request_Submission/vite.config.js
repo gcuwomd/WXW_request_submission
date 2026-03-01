@@ -27,6 +27,16 @@ export default defineConfig({
     host: '0.0.0.0', // 允许通过 IP 访问
     port: 5173,      // 前端端口
     proxy: {
+      // 匹配 /login，但排除 /login/callback 以免影响前端路由
+      '^/login(?!/callback)': {
+        target: 'http://117.72.16.195:6600',
+        changeOrigin: true,
+      },
+      // 匹配所有以 /permission 开头的请求 (新增加用于用户信息接口转发)
+      '/permission': {
+        target: 'http://117.72.16.195:6600',
+        changeOrigin: true,
+      },
       // 匹配所有以 /check 开头的请求
       '/check': {
         target: 'http://117.72.16.195:6600', // 后端部署地址

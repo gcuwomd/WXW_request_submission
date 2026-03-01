@@ -4,11 +4,11 @@ import TaskList from '@/views/member/TaskList.vue'
 
 const member = [
   {
-    path: '/MemberUse',
+    path: 'MemberUse',
     component: MemberUse,
   },
   {
-    path: '/MemberTaskList',
+    path: 'MemberTaskList',
     component: TaskList,
   },
 ];

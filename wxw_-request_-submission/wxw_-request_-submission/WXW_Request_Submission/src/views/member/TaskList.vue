@@ -67,6 +67,7 @@ import { ref, onMounted, computed } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import FloatWindow from '../../views/member/TaskDetail.vue'
 import { fetchMemberTasks } from '../../api/member' 
+import { useUserStore } from '@/store/user'
 
 const showFloatWindow = ref(false)
 const currentFilters = ref({ tag: [] })
@@ -75,6 +76,8 @@ const input = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const allTableData = ref([]) 
+
+const userStore = useUserStore()
 
 // 状态映射字典 (需要根据后端实际返回的 integer 值进行调整)
 // 假设: 0-进行中, 1-待审核, 2-已完成, 3-被打回
@@ -88,24 +91,29 @@ const statusMap = {
 // 获取任务列表
 async function fetchTaskList() {
     try {
-        // TODO: 这里需要动态获取当前登录干事的姓名，目前先写死测试
-        const currentOfficerName = "干事A" 
+        // 3. 修改这里：使用 store 中的 userId (即学号/用户名)
+        const currentOfficerName = userStore.userId 
         
+        if (!currentOfficerName) {
+            console.error('未获取到用户信息，无法加载任务')
+            return
+        }
+
+        console.log('正在获取任务列表，用户:', currentOfficerName)
         const response = await fetchMemberTasks(currentOfficerName)
         
-        // 确保 response.data 是数组，如果是 API 返回结构 {code: 200, data: [...]}
         const rawList = response.data || [] 
 
         allTableData.value = rawList.map(item => ({
-            id: item.sonTaskId,           // 映射子任务ID
+            id: item.sonTaskId,           
             taskName: item.taskName,
-            adminer: item.administrator || '管理员', // 如果接口没返回发布者，给默认值
+            adminer: item.administrator || '管理员', 
             deadline: item.deadline,
-            date: item.createTime || '2023-01-01',   // 任务创建时间
-            tag: statusMap[item.status] || '未知状态', // 状态数字转文字
-            statusOrigin: item.status,    // 保留原始状态码备用
-            requirement: item.taskDetail, // 任务描述
-            attachments: item.annexName || '无' // 假设后端返回了附件名字
+            date: item.createTime || '2023-01-01',   
+            tag: statusMap[item.status] || '未知状态', 
+            statusOrigin: item.status,    
+            requirement: item.taskDetail, 
+            attachments: item.annexName || '无' 
         }))
     } catch (error) {
         console.error('获取任务列表失败:', error)

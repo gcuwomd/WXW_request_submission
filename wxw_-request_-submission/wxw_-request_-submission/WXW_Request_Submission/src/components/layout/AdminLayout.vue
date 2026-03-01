@@ -16,7 +16,7 @@
             <el-aside style="width: 400px; ">
             <el-col :span="12">
               <el-menu class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose">
-                <RouterLink to="/TaskList">
+                <RouterLink to="/admin/TaskList">
                   <el-menu-item index="1">
                     <template #title>
                       <el-icon>
@@ -26,7 +26,7 @@
                     </template>
                   </el-menu-item>
                 </RouterLink>
-                <RouterLink to="/AdminUse">
+                <RouterLink to="/admin/AdminUse">
                   <el-menu-item index="2">
                     <el-icon><icon-menu /></el-icon>
                     <span>使用说明</span>

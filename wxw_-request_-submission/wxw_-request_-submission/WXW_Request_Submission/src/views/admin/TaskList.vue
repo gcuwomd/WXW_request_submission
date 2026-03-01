@@ -37,6 +37,8 @@
                         </el-button>
                         <FloatWindow v-if="showFloatWindow" :task-data="currentTask" @close="showFloatWindow = false"
                             style="z-index: 10000;" />
+                        <FloatWindow v-if="showFloatWindow" :task-data="currentTask" @close="showFloatWindow = false"
+                            style="z-index: 10000;" />
                     </template>
                 </el-table-column>
             </el-table>

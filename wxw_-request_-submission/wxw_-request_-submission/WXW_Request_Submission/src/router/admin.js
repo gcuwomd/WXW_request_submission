@@ -4,11 +4,11 @@ import AdminUse from '@/views/admin/AdminUse.vue';
 
 const admin = [
   {
-    path: '/TaskList',
+    path: 'TaskList',
     component: TaskList,
   },
   {
-    path: '/AdminUse',
+    path: 'AdminUse',
     component: AdminUse,
   },
 ];
