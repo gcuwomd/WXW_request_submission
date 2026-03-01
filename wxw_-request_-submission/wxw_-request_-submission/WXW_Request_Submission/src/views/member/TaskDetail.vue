@@ -1,111 +1,196 @@
 <template>
-    <div class="common-layout">
-        <el-container class="float-window">
-            <el-main class="float-window-content">
-                <div class="content-wrapper">
-                    <div class="left">
-                        <p class="text">任务ID: {{ taskData?.id || '暂未分配ID' }}</p>
-                        <p class="text">任务名称: {{ taskData?.taskName }}</p>
-                        <div class="need">
-                            <p class="text" style="margin: 0;">任务需求：</p>
-                            <div class="need-box">{{ taskData?.requirement || '暂无需求描述' }}</div>
-                        </div>
-                        <div class="need">
-                            <p class="text" style="margin: 10px 0;">相关附件：</p>
-                            <div class="need-box" style="margin-top: 10px;">{{ taskData?.attachments }}</div>
-                        </div>
-                        <p class="text">要求时间: {{ taskData?.deadline }}</p>
-                        <p class="text">发布者: {{ taskData?.adminer }}</p>
-                        <p class="text">当前状态: {{ taskData?.tag }}</p>
+    <el-main class="detail-container">
+        <el-card shadow="never" class="header-card">
+            <el-page-header @back="goBack" title="返回">
+                <template #content>
+                    <span class="text-large font-600 mr-3"> 任务详情 </span>
+                    <el-tag :type="getStatusType(taskData.tag)" class="ml-2">{{ taskData.tag }}</el-tag>
+                </template>
+            </el-page-header>
+        </el-card>
+
+        <div class="content-layout">
+            <el-card shadow="hover" class="left-card">
+                <template #header>
+                    <div class="card-header">
+                        <span>基础信息</span>
                     </div>
-                    
-                    <div class="right" v-if="taskData?.tag === '进行中' || taskData?.tag === '被打回'">
-                        
-                        <div v-if="taskData?.tag === '被打回'" style="background-color: #fef0f0; border: 1px solid #fbc4c4; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                            <el-alert title="任务被打回" type="error" description="请修改后重新提交" :closable="false" show-icon />
-                        </div>
+                </template>
+                <el-descriptions :column="1" border>
+                    <el-descriptions-item label="任务ID">{{ taskData.id || '暂无' }}</el-descriptions-item>
+                    <el-descriptions-item label="任务名称">{{ taskData.taskName }}</el-descriptions-item>
+                    <el-descriptions-item label="发布者">{{ taskData.adminer }}</el-descriptions-item>
+                    <el-descriptions-item label="下发时间">{{ taskData.date }}</el-descriptions-item>
+                    <el-descriptions-item label="截止时间">
+                        <span style="color: #F56C6C; font-weight: bold;">{{ taskData.deadline }}</span>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="任务需求">
+                        <div style="white-space: pre-wrap;">{{ taskData.requirement || '暂无需求描述' }}</div>
+                    </el-descriptions-item>
+                </el-descriptions>
 
-                        <p class="text">任务状态进度：</p>
-                        <el-steps style="max-width: 600px; margin-bottom: 20px;" :active="taskData?.tag === '被打回' ? 0 : 1" align-center>
-                            <el-step title="进行中" />
-                            <el-step title="待审核" />
-                            <el-step title="已完成" />
-                        </el-steps>
+                <div class="annex-section">
+                    <h4>任务附件 (后端下发)</h4>
+                    <el-table :data="annexList" border style="width: 100%" v-loading="loadingAnnex">
+                        <template #empty><el-empty description="暂无附件" :image-size="60" /></template>
+                        <el-table-column prop="object" label="文件名" />
+                        <el-table-column prop="size" label="大小(KB)" width="100" />
+                        <el-table-column prop="createTime" label="上传时间" width="180" />
+                        <el-table-column label="操作" width="100" fixed="right">
+                            <template #default="scope">
+                                <el-button type="primary" link @click="downloadFile(scope.row.object)">下载</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </el-card>
 
-                        <p class="text">上传完成证明附件：</p>
-                        <el-upload 
-                            class="upload-demo" 
-                            drag
-                            :action="uploadAction"
-                            :data="{ breakdownId: taskData?.id }"
-                            name="files" 
-                            :on-success="handleUploadSuccess"
-                            :on-error="handleUploadError"
-                            multiple>
-                            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                            <div class="el-upload__text">
-                               拖拽文件到此处或 <em>点击上传</em>
-                            </div>
-                        </el-upload>
-
-                        <div style="text-align: center; margin-top: 30px;">
-                            <el-button 
-                                type="primary" 
-                                @click="submitTask" 
-                                :loading="isSubmitting"
-                                size="large">
-                                {{ taskData?.tag === '被打回' ? '重新提交' : '提交任务' }}
-                            </el-button>
-                        </div>
+            <el-card shadow="hover" class="right-card">
+                <template #header>
+                    <div class="card-header">
+                        <span>进度与操作</span>
                     </div>
-
-                    <div class="right" v-else-if="taskData?.tag === '待审核'" style="display: flex;flex-direction: column; align-items: center;justify-content: center;">
-                        <p class="text"><strong>任务已提交，等待审核</strong></p>
-                        <el-steps style="max-width: 800px; margin-top: 20px;" :active="2" align-center>
-                            <el-step title="进行中" />
-                            <el-step title="待审核" />
-                            <el-step title="已完成" />
-                        </el-steps>
-                        <div style="margin-top: 30px; text-align: center;">
-                            <p class="text">请耐心等待管理员审核。</p>
-                        </div>
-                    </div>
-
-                    <div class="right" v-else-if="taskData?.tag === '已完成'" style="display: flex;justify-content: center; flex-direction: column; align-items: center;">
-                        <img src="/image/finsh.png" alt="完成" style="width: 80%;">
-                        <h2 style="margin-top: 20px; color: #67C23A;"><strong>任务已完成</strong></h2>
-                    </div>
+                </template>
+                
+                <div class="step-container">
+                    <el-steps :active="getStepActive()" align-center finish-status="success">
+                        <el-step title="进行中" />
+                        <el-step title="待审核" />
+                        <el-step title="已完成" />
+                    </el-steps>
                 </div>
 
-                <div class="bottom-button-container">
-                    <el-button @click="close">关闭窗口</el-button>
+                <div v-if="taskData.tag === '被打回'" class="alert-box">
+                    <el-alert title="任务被打回" type="error" description="请根据意见修改后重新上传附件并提交。" :closable="false" show-icon />
                 </div>
-            </el-main>
-        </el-container>
-    </div>
+                <div v-if="taskData.tag === '待审核'" class="alert-box">
+                    <el-alert title="等待管理员审核" type="warning" description="您已提交任务完成证明，请耐心等待审核。" :closable="false" show-icon />
+                </div>
+                <div v-if="taskData.tag === '已完成'" class="finish-box">
+                    <img src="/image/finsh.png" alt="已完成" style="width: 200px;">
+                    <h3 style="color: #67C23A;">任务圆满完成！</h3>
+                </div>
+
+                <div v-if="taskData.tag === '进行中' || taskData.tag === '被打回'" class="action-section">
+                    <h4>上传完成证明附件</h4>
+                    <el-upload 
+                        class="upload-demo" 
+                        drag
+                        :action="uploadAction"
+                        :data="{ breakdownId: taskData.id }"
+                        name="files" 
+                        :on-success="handleUploadSuccess"
+                        :on-error="handleUploadError"
+                        multiple>
+                        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                        <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
+                    </el-upload>
+
+                    <div class="submit-btn-wrapper">
+                        <el-button 
+                            type="primary" 
+                            @click="submitTask" 
+                            :loading="isSubmitting"
+                            size="large"
+                            style="width: 200px;">
+                            {{ taskData.tag === '被打回' ? '重新提交任务' : '提交任务' }}
+                        </el-button>
+                    </div>
+                </div>
+            </el-card>
+        </div>
+    </el-main>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { updateTaskStatus, uploadUrl } from '../../api/member'
+import { updateTaskStatus, uploadUrl, fetchTaskAttachments, downloadTaskAttachment } from '../../api/member'
 
-const props = defineProps<{
-  taskData?: any
-}>()
-
-const emit = defineEmits(['close', 'taskUpdated'])
+const route = useRoute()
+const router = useRouter()
 const isSubmitting = ref(false)
-const uploadAction = uploadUrl // 绑定上传接口地址
+const uploadAction = uploadUrl 
 
-const close = () => {
-    emit('close')
+const taskData = ref<any>({})
+const annexList = ref([])
+const loadingAnnex = ref(false)
+
+// 初始化页面数据
+onMounted(() => {
+    // 从 sessionStorage 恢复任务数据
+    const savedData = sessionStorage.getItem('currentMemberTask')
+    if (savedData) {
+        taskData.value = JSON.parse(savedData)
+        loadAttachments()
+    } else {
+        ElMessage.warning('丢失任务数据，请重新进入')
+        goBack()
+    }
+})
+
+// 返回列表页
+const goBack = () => {
+    sessionStorage.removeItem('currentMemberTask')
+    router.push('/member/MemberTaskList')
 }
 
-// 上传成功回调
-const handleUploadSuccess = (response) => {
-    // 假设后端返回 code=200 或 code=0 为成功
+// 辅助：获取状态颜色
+const getStatusType = (tag: string) => {
+    if (tag === '已完成') return 'success'
+    if (tag === '被打回') return 'danger'
+    if (tag === '进行中') return 'primary'
+    if (tag === '待审核') return 'warning'
+    return 'info'
+}
+
+// 辅助：计算步骤条激活索引
+const getStepActive = () => {
+    if (taskData.value.tag === '待审核') return 1
+    if (taskData.value.tag === '已完成') return 3
+    if (taskData.value.tag === '被打回') return 0
+    return 0 // 进行中
+}
+
+// 获取任务附件列表
+const loadAttachments = async () => {
+    if (!taskData.value.id) return
+    loadingAnnex.value = true
+    try {
+        const res = await fetchTaskAttachments(taskData.value.id)
+        if (res && res.data) {
+            annexList.value = res.data
+        }
+    } catch (error) {
+        console.error('获取附件失败', error)
+    } finally {
+        loadingAnnex.value = false
+    }
+}
+
+// 下载附件
+const downloadFile = async (fileName: string) => {
+    try {
+        // 注：localPath 参数后端可能用于特殊用途，通常前端下载只需文件名即可，这里传空或按需传递
+        const res = await downloadTaskAttachment(fileName, '')
+        // 创建 Blob 下载链接
+        const url = window.URL.createObjectURL(new Blob([res]))
+        const link = document.createElement('a')
+        link.style.display = 'none'
+        link.href = url
+        link.setAttribute('download', fileName)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+    } catch (error) {
+        ElMessage.error('下载失败')
+    }
+}
+
+const handleUploadSuccess = (response: any) => {
     if (response.code === 200 || response.code === 0) {
         ElMessage.success('附件上传成功')
     } else {
@@ -117,22 +202,22 @@ const handleUploadError = () => {
     ElMessage.error('网络错误，附件上传失败')
 }
 
-// 提交任务 (修改状态)
+// 提交任务
 const submitTask = async () => {
-    if (!props.taskData?.id) {
+    if (!taskData.value.id) {
         ElMessage.error('无法获取任务ID')
         return
     }
 
     isSubmitting.value = true
     try {
-        // 调用接口将状态改为 "待审核"
-        // 假设后端状态码约定: 1 代表 '待审核'
-        await updateTaskStatus(props.taskData.id, 1)
-        
+        // 根据后端设计，状态1代表待审核
+        await updateTaskStatus(taskData.value.id, 1)
         ElMessage.success('提交成功，请等待管理员审核')
-        emit('taskUpdated') // 通知父组件刷新列表
-        emit('close')       // 关闭弹窗
+        // 模拟刷新状态
+        taskData.value.tag = '待审核'
+        // 更新缓存避免返回时状态闪烁
+        sessionStorage.setItem('currentMemberTask', JSON.stringify(taskData.value))
     } catch (error) {
         console.error(error)
         ElMessage.error('提交失败，请重试')
@@ -143,69 +228,72 @@ const submitTask = async () => {
 </script>
 
 <style scoped>
-.common-layout {
-    position: static;
+.detail-container {
+    background-color: #f4f6f8;
+    min-height: calc(100vh - 60px);
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-.float-window {
-    position: fixed;
-    width: 65%;
-    height: 80%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2000;
-}
-
-.float-window-content {
-    padding: 30px;
-    background-color: white;
+.header-card {
+    margin-bottom: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.content-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.left-card {
+    flex: 3;
+    border-radius: 8px;
+}
+
+.right-card {
+    flex: 2;
+    border-radius: 8px;
+}
+
+.card-header {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.annex-section {
+    margin-top: 30px;
+}
+.annex-section h4 {
+    margin-bottom: 15px;
+    color: #303133;
+    border-left: 4px solid #409EFF;
+    padding-left: 10px;
+}
+
+.step-container {
+    margin: 20px 0 40px 0;
+}
+
+.alert-box {
+    margin-bottom: 30px;
+}
+
+.finish-box {
     display: flex;
     flex-direction: column;
-    height: 100%;
-}
-
-.content-wrapper {
-    display: flex;
-    justify-content: space-between;
-    flex: 1;
-    overflow-y: auto;
-}
-
-.left {
-    width: 45%;
-    border-right: 1px solid #eee;
-    padding-right: 20px;
-}
-
-.right {
-    width: 50%;
-    padding-left: 20px;
-}
-
-.bottom-button-container {
-    display: flex;
+    align-items: center;
     justify-content: center;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #eaeaea;
+    padding: 40px 0;
 }
 
-.need-box {
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    padding: 10px;
-    background-color: #fafafa;
-    min-height: 60px;
-    margin-top: 5px;
+.action-section h4 {
+    margin-bottom: 15px;
+    color: #303133;
 }
 
-.text {
-    margin: 10px 0;
-    font-size: 14px;
-    color: #606266;
-    line-height: 1.5;
+.submit-btn-wrapper {
+    margin-top: 30px;
+    text-align: center;
 }
 </style>

@@ -1,11 +1,18 @@
-// gcuwomd/wxw_request_submission/WXW_request_submission-e4248e0335afb39faeb0a9f495e1e51a333ef66f/wxw_-request_-submission/wxw_-request_-submission/WXW_Request_Submission/src/api/admin.js
+// src/api/admin.js
+import request from '@/utils/request' 
 
-import request from '@/utils/request' // 引入封装好的 request
+// --- 新增：获取当前登录用户信息 ---
+export const fetchUserInfo = () => {
+  return request({
+    url: '/permission/user/information',
+    method: 'get'
+  })
+}
 
 // 1. 获取主任务列表
 export const fetchMainTasks = (params = { page: 1, pageSize: 100 }) => {
   return request({
-    url: '/check/api/administrator/get/allMain', // 添加 /check
+    url: '/check/api/administrator/get/allMain',
     method: 'get',
     params
   })
@@ -14,7 +21,7 @@ export const fetchMainTasks = (params = { page: 1, pageSize: 100 }) => {
 // 2. 根据主任务ID获取子任务
 export const fetchSubTasks = (mainTaskId) => {
   return request({
-    url: '/check/api/administrator/get/allSonTask', // 添加 /check
+    url: '/check/api/administrator/get/allSonTask',
     method: 'get',
     params: { mainTaskId }
   })
@@ -23,7 +30,7 @@ export const fetchSubTasks = (mainTaskId) => {
 // 3. 发布子任务
 export const createSubTask = (data) => {
   return request({
-    url: '/check/api/administrator/post/sonTask', // 添加 /check
+    url: '/check/api/administrator/post/sonTask',
     method: 'post',
     data
   })
@@ -32,7 +39,7 @@ export const createSubTask = (data) => {
 // 4. 删除子任务
 export const deleteSubTask = (sonTaskId) => {
   return request({
-    url: '/check/api/administrator/post/deleteSonTask', // 添加 /check
+    url: '/check/api/administrator/post/deleteSonTask',
     method: 'delete',
     params: { sonTaskId }
   })
@@ -41,26 +48,54 @@ export const deleteSubTask = (sonTaskId) => {
 // 5. 审核子任务 (通过/打回)
 export const auditSubTask = (sonTaskId, status) => {
   return request({
-    url: '/check/api/administrator/update/sonStatus', // 添加 /check
+    url: '/check/api/administrator/update/sonStatus',
     method: 'post',
     params: { sonTaskId, status }
   })
 }
 
-// 6. 获取所有干事
-export const fetchAllOfficers = () => {
+// 6. 获取所有干事 (修改为动态接收 departmentId)
+export const fetchAllOfficers = (departmentId) => {
   return request({
-    url: '/check/api/administrator/get/allUser', // 添加 /check
+    url: '/check/api/administrator/get/allUser',
     method: 'get',
-    params: { departmentId: 1 }
+    params: { departmentId }
   })
 }
 
 // 7. 修改主任务状态
 export const updateMainStatus = (mainTaskId, status) => {
   return request({
-    url: '/check/api/administrator/update/mainStatus', // 添加 /check
+    url: '/check/api/administrator/update/mainStatus',
     method: 'post',
     params: { mainTaskId, status }
+  })
+}
+
+// 8. 根据id获取主任务需求
+export const fetchMainRequirement = (mainTaskId) => {
+  return request({
+    url: '/check/api/administrator/get/mainRequirement',
+    method: 'get',
+    params: { mainTaskId }
+  })
+}
+
+// 9. 管理员获取干事回复附件列表
+export const fetchReplyAttachments = (breakdownId) => {
+  return request({
+    url: '/check/api/administrator/get/ReplyAnnexList',
+    method: 'get',
+    params: { breakdownId }
+  })
+}
+
+// 10. 管理员下载干事回复附件
+export const downloadReplyAttachment = (objectName, localPath) => {
+  return request({
+    url: '/check/api/administrator/download/ReplyAnnex',
+    method: 'get',
+    params: { objectName, localPath },
+    responseType: 'blob' 
   })
 }
