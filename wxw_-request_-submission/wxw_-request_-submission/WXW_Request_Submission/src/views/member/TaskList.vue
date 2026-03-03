@@ -59,8 +59,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
-import { fetchMemberTasks } from '../../api/member' 
-import { useUserStore } from '@/store/user'
+import { ElMessage } from 'element-plus' // 引入消息提示
+import { fetchMemberTasks, fetchUserInfo } from '../../api/member' // 引入 fetchUserInfo
 
 const router = useRouter()
 const currentFilters = ref({ tag: [] })
@@ -68,8 +68,6 @@ const input = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const allTableData = ref([]) 
-
-const userStore = useUserStore()
 
 // 状态映射字典
 const statusMap = {
@@ -82,10 +80,17 @@ const statusMap = {
 // 获取任务列表
 async function fetchTaskList() {
     try {
-        const currentOfficerName = userStore.userId 
-        if (!currentOfficerName) return
+        // 1. 先调用接口获取当前登录干事的真实个人信息
+        const userInfoRes = await fetchUserInfo()
+        const realName = userInfoRes.data?.username
+
+        if (!realName) {
+            ElMessage.error('无法获取您的干事姓名，请重新登录')
+            return
+        }
         
-        const response = await fetchMemberTasks(currentOfficerName)
+        // 2. 将真实的中文名作为参数传给后端拉取任务列表
+        const response = await fetchMemberTasks(realName)
         const rawList = response.data || [] 
 
         allTableData.value = rawList.map(item => ({
@@ -101,6 +106,7 @@ async function fetchTaskList() {
         }))
     } catch (error) {
         console.error('获取任务列表失败:', error)
+        ElMessage.error('获取任务数据失败，请检查网络')
     }
 }
 
@@ -170,7 +176,7 @@ onMounted(() => {
 <style scoped>
 .main-container {
     background-color: #f4f6f8;
-    min-height: calc(100vh - 60px); /* 假设头部导航为60px */
+    min-height: calc(100vh - 60px);
     padding: 20px;
     box-sizing: border-box;
 }
@@ -194,12 +200,23 @@ onMounted(() => {
 
 .pagination-container {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     margin-top: 20px;
 }
 
-:deep(.el-table .warning-row) { --el-table-tr-bg-color: var(--el-color-warning-light-9); }
-:deep(.el-table .success-row) { --el-table-tr-bg-color: var(--el-color-success-light-9); }
-:deep(.el-table .danger-row) { --el-table-tr-bg-color: var(--el-color-danger-light-9); }
-:deep(.el-table .primary-row) { --el-table-tr-bg-color: var(--el-color-primary-light-9); }
+:deep(.el-table .warning-row) {
+    --el-table-tr-bg-color: var(--el-color-warning-light-9);
+}
+
+:deep(.el-table .success-row) {
+    --el-table-tr-bg-color: var(--el-color-success-light-9);
+}
+
+:deep(.el-table .danger-row) {
+    --el-table-tr-bg-color: var(--el-color-danger-light-9);
+}
+
+:deep(.el-table .primary-row) {
+    --el-table-tr-bg-color: var(--el-color-primary-light-9);
+}
 </style>

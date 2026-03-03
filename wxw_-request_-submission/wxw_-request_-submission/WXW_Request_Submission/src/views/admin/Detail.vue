@@ -24,12 +24,21 @@
                     </el-button>
                 </div>
             </template>
-            <el-descriptions :column="3" border>
+            <el-descriptions :column="3" border v-loading="loadingDetail">
                 <el-descriptions-item label="任务名称">{{ mainTaskData.taskName }}</el-descriptions-item>
                 <el-descriptions-item label="委托老师">{{ mainTaskData.teacher }}</el-descriptions-item>
                 <el-descriptions-item label="要求时间">{{ mainTaskData.dateLimit }}</el-descriptions-item>
                 <el-descriptions-item label="联系方式">{{ mainTaskData.phoneNumber }}</el-descriptions-item>
                 <el-descriptions-item label="办公地址" :span="2">{{ mainTaskData.officeAddress }}</el-descriptions-item>
+                
+                <el-descriptions-item label="任务需求" :span="3">
+                    <div style="white-space: pre-wrap; line-height: 1.6;">
+                        <div>{{ mainTaskData.requirementDetail || '暂无具体需求描述' }}</div>
+                        <div v-if="mainTaskData.otherInfo" style="margin-top: 10px; color: #606266;">
+                            <strong>【补充说明】：</strong>{{ mainTaskData.otherInfo }}
+                        </div>
+                    </div>
+                </el-descriptions-item>
             </el-descriptions>
         </el-card>
 
@@ -110,7 +119,6 @@
                         v-model="createForm.deadline" 
                         type="datetime" 
                         placeholder="选择截止时间" 
-                        value-format="YYYY-MM-DD HH:mm:ss"
                         style="width: 100%;" 
                     />
                 </el-form-item>
@@ -151,7 +159,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
     fetchSubTasks, 
@@ -161,11 +169,17 @@ import {
     createSubTask,
     fetchAllOfficers,
     updateMainStatus,
-    fetchUserInfo // 引入新接口
+    fetchUserInfo,
+    fetchMainRequirement,
+    fetchMainTaskByName 
 } from '../../api/admin'
 
 const router = useRouter()
+const route = useRoute()
+
 const mainTaskData = ref<any>({})
+const loadingDetail = ref(false)
+
 const subTasks = ref([])
 const loading = ref(false)
 
@@ -197,6 +211,7 @@ const createRules = reactive({
     adminPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
 })
 
+// 状态格式化防御方法
 const formatStatus = (status) => {
     if (status === 0 || status === '0') return '待受理'
     if (status === 1 || status === '1') return '进行中'
@@ -218,19 +233,78 @@ const getSubStatusType = (statusText) => {
 }
 
 onMounted(() => {
+    let mainId = null;
+    let taskName = null;
     const savedData = sessionStorage.getItem('currentAdminMainTask')
+
     if (savedData) {
         mainTaskData.value = JSON.parse(savedData)
         mainTaskData.value.dateLimit = formatDate(mainTaskData.value.dateLimit)
+        mainId = mainTaskData.value.mainTaskID || mainTaskData.value.mainTaskId
+        taskName = mainTaskData.value.taskName
         
         if (mainTaskData.value.tag !== '待受理') {
-            loadSubTasks()
+            loadSubTasks(mainId)
         }
+    } else if (route.query.id) {
+        mainId = route.query.id
+        taskName = route.query.taskName 
+    }
+
+    if (mainId || taskName) {
+        loadFullTaskDetail(mainId, taskName)
     } else {
         ElMessage.warning('丢失主任务数据，请重新进入')
         goBack()
     }
 })
+
+// 处理合并状态时，对数字标签(tag)进行转译
+const loadFullTaskDetail = async (mainId, taskName) => {
+    loadingDetail.value = true
+    try {
+        const fetchBasicInfo = taskName 
+            ? fetchMainTaskByName(taskName).catch(e => { console.error('基本信息获取失败', e); return { data: null }; })
+            : Promise.resolve({ data: null });
+            
+        const fetchRequirement = mainId 
+            ? fetchMainRequirement(mainId).catch(e => { console.error('需求信息获取失败', e); return { data: null }; })
+            : Promise.resolve({ data: null });
+
+        const [basicRes, reqRes] = await Promise.all([fetchBasicInfo, fetchRequirement])
+
+        const currentTag = mainTaskData.value.tag 
+        let updatedData = { ...mainTaskData.value }
+
+        // 1. 合并基本信息
+        if (basicRes && basicRes.data) {
+            const basicData = Array.isArray(basicRes.data) ? basicRes.data[0] : basicRes.data
+            if (basicData) {
+                updatedData = { ...updatedData, ...basicData }
+            }
+        }
+
+        // 2. 合并需求长文本 ( requirementDetail 等 )
+        if (reqRes && reqRes.data) {
+            updatedData = { ...updatedData, ...reqRes.data }
+        }
+
+        // 3. 字段兜底处理与格式化
+        updatedData.dateLimit = formatDate(updatedData.dateLimit || mainTaskData.value.dateLimit)
+        
+        // 关键修复：确保合并后的 tag 被转译为标准的中文格式 (比如把接口覆盖过来的 1 转回 '进行中')
+        updatedData.tag = formatStatus(updatedData.tag !== undefined ? updatedData.tag : currentTag)
+
+        mainTaskData.value = updatedData
+        sessionStorage.setItem('currentAdminMainTask', JSON.stringify(mainTaskData.value))
+
+    } catch (error) {
+        console.error('获取主任务详情遇到异常:', error)
+        ElMessage.error('无法完整加载最新任务详情')
+    } finally {
+        loadingDetail.value = false
+    }
+}
 
 const goBack = () => {
     sessionStorage.removeItem('currentAdminMainTask')
@@ -249,7 +323,7 @@ const handleAcceptTask = async () => {
         mainTaskData.value.tag = '进行中'
         sessionStorage.setItem('currentAdminMainTask', JSON.stringify(mainTaskData.value))
         
-        loadSubTasks()
+        loadSubTasks(mainId)
     } catch (error) {
         console.error('受理任务失败', error)
         ElMessage.error('受理任务失败，请检查网络或重试')
@@ -258,8 +332,8 @@ const handleAcceptTask = async () => {
     }
 }
 
-const loadSubTasks = async () => {
-    const mainId = mainTaskData.value.mainTaskID || mainTaskData.value.mainTaskId
+const loadSubTasks = async (id = null) => {
+    const mainId = id || mainTaskData.value.mainTaskID || mainTaskData.value.mainTaskId
     if (!mainId) return
     
     loading.value = true
@@ -279,12 +353,10 @@ const loadSubTasks = async () => {
     }
 }
 
-// 修改：打开弹窗时先获取管理员部门，再拉取对应干事
 const openCreateDialog = async () => {
     createDialogVisible.value = true
     if (officerList.value.length === 0) {
         try {
-            // 1. 获取当前管理员部门 ID
             const userInfoRes = await fetchUserInfo()
             const currentDeptId = userInfoRes.data?.departmentId
             
@@ -293,7 +365,6 @@ const openCreateDialog = async () => {
                 return
             }
 
-            // 2. 根据部门 ID 获取对应的干事
             const res = await fetchAllOfficers(currentDeptId)
             officerList.value = res.data || []
         } catch (error) {
@@ -316,8 +387,11 @@ const submitCreateForm = async () => {
         if (valid) {
             isCreating.value = true
             try {
+                const formattedDeadline = new Date(createForm.deadline).toISOString().replace('Z', '+00:00')
+
                 const payload = {
                     ...createForm,
+                    deadline: formattedDeadline, 
                     mainTaskId: mainTaskData.value.mainTaskID || mainTaskData.value.mainTaskId
                 }
                 
@@ -383,6 +457,7 @@ const downloadFile = async (fileName: string) => {
 </script>
 
 <style scoped>
+
 .detail-container {
     background-color: #f4f6f8;
     min-height: calc(100vh - 60px);
@@ -410,4 +485,5 @@ const downloadFile = async (fileName: string) => {
     background-color: #fafafa;
     border-radius: 4px;
 }
+
 </style>

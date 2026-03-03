@@ -12,7 +12,7 @@
                             <p class="text" style="margin: 0;">任务需求：</p>
                             <div class="need-box">{{ taskData?.taskName }} (详细需求请调用详情接口)</div>
                         </div>
-                        <p class="text">截止时间：{{ taskData?.dateLimit }}</p>
+                        <p class="text">截止时间：{{ taskData?.dateLimit }}</p> 
                     </div>
 
                     <div class="right">
@@ -146,14 +146,69 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 样式同前 */
-.common-layout { position: static; }
-.float-window { position: fixed; width: 75%; height: 90%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9000; }
-.float-window-content { padding: 30px; background: white; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; height: 100%; }
-.content-wrapper { display: flex; justify-content: space-between; flex: 1; overflow: hidden; }
-.left { width: 40%; padding-right: 20px; border-right: 1px solid #eee; overflow-y: auto; }
-.right { width: 58%; padding-left: 20px; overflow-y: auto; }
-.need-box { background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #eee; margin: 5px 0; }
-.text { margin: 8px 0; font-size: 14px; color: #333; line-height: 1.6; }
-.bottom-button-container { margin-top: 20px; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+.common-layout {
+    position: static;
+}
+
+.float-window {
+    position: fixed;
+    width: 75%;
+    height: 90%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9000;
+}
+
+.float-window-content {
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    flex: 1;
+    overflow: hidden;
+}
+
+.left {
+    width: 40%;
+    padding-right: 20px;
+    border-right: 1px solid #eee;
+    overflow-y: auto;
+}
+
+.right {
+    width: 58%;
+    padding-left: 20px;
+    overflow-y: auto;
+}
+
+.need-box {
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    margin: 5px 0;
+}
+
+.text {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+}
+
+.bottom-button-container {
+    margin-top: 20px;
+    text-align: center;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
 </style>

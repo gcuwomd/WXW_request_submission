@@ -1,6 +1,14 @@
 // src/api/member.js
 import request from '@/utils/request' 
 
+// --- 新增：获取当前登录用户信息 ---
+export const fetchUserInfo = () => {
+  return request({
+    url: '/permission/user/information',
+    method: 'get'
+  })
+}
+
 // 1. 获取干事任务列表
 export const fetchMemberTasks = (officerName) => {
   return request({
@@ -25,7 +33,7 @@ export const downloadTaskAttachment = (objectName, localPath) => {
     url: '/check/api/officer/download/Annex',
     method: 'get',
     params: { objectName, localPath },
-    responseType: 'blob' // 下载文件需注明 blob
+    responseType: 'blob' 
   })
 }
 
@@ -58,5 +66,4 @@ export const downloadReplyAttachment = (objectName, localPath) => {
 }
 
 // 7. 上传地址 (用于 el-upload action)
-// 注意：该请求不经过axios，需要在el-upload中配置headers携带token
 export const uploadUrl = '/check/api/officer/add/Annexs'

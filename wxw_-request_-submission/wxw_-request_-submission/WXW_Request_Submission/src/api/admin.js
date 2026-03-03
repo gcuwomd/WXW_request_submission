@@ -1,7 +1,7 @@
 // src/api/admin.js
 import request from '@/utils/request' 
 
-// --- 新增：获取当前登录用户信息 ---
+// 获取当前登录用户信息
 export const fetchUserInfo = () => {
   return request({
     url: '/permission/user/information',
@@ -54,7 +54,7 @@ export const auditSubTask = (sonTaskId, status) => {
   })
 }
 
-// 6. 获取所有干事 (修改为动态接收 departmentId)
+// 6. 获取所有干事
 export const fetchAllOfficers = (departmentId) => {
   return request({
     url: '/check/api/administrator/get/allUser',
@@ -97,5 +97,23 @@ export const downloadReplyAttachment = (objectName, localPath) => {
     method: 'get',
     params: { objectName, localPath },
     responseType: 'blob' 
+  })
+}
+
+// 11. 根据干事姓名查询主任务
+export const fetchMainTasksByOfficial = (Official) => {
+  return request({
+    url: '/check/api/administrator/get/mainTaskByOfficial',
+    method: 'get',
+    params: { Official }
+  })
+}
+
+// 12. 根据任务名称查询主任务基础信息 ---
+export const fetchMainTaskByName = (mainTaskName) => {
+  return request({
+    url: '/check/api/administrator/get/mainTaskByName',
+    method: 'get',
+    params: { mainTaskName }
   })
 }

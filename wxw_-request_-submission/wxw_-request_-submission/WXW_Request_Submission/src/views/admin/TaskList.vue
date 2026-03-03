@@ -2,8 +2,15 @@
     <el-main class="main-container">
         <div class="header-operate">
             <span><strong>受理干事 </strong></span>
-            <el-select-v2 v-model="value1" filterable :options="options1" placeholder="请选择受理干事"
-                style="width: 240px ; margin-left: 10px;" multiple />
+            <el-select-v2 
+                v-model="value1" 
+                filterable 
+                clearable
+                :options="options1" 
+                placeholder="请选择受理干事"
+                style="width: 240px ; margin-left: 10px;" 
+                @change="handleOfficialChange"
+            />
             <el-input v-model="input" style="width: 240px ; margin-left: 30px;" placeholder="请输入任务名称" :suffix-icon="Search" />
         </div>
 
@@ -57,7 +64,8 @@
 import { Search } from '@element-plus/icons-vue'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchMainTasks, fetchAllOfficers, fetchUserInfo } from '../../api/admin' // 引入 fetchUserInfo
+import { ElMessage } from 'element-plus'
+import { fetchMainTasks, fetchAllOfficers, fetchUserInfo, fetchMainTasksByOfficial } from '../../api/admin' // 引入新接口
 
 const router = useRouter()
 const currentPage = ref(1)
@@ -67,7 +75,8 @@ const input = ref('')
 const currentFilters = ref({})
 
 const options1 = ref([])
-const value1 = ref([])
+// 修改为单选字符串
+const value1 = ref('')
 
 const formatStatus = (status) => {
     if (status === 0 || status === '0') return '待受理'
@@ -112,10 +121,39 @@ const handleFilterChange = (filters) => {
     currentPage.value = 1  
 }
 
-// 修改：先获取管理员部门，再获取干事
+// 统一处理任务列表的数据赋值
+const updateTableData = (rawData) => {
+    allTableData.value = rawData.map(item => {
+        return {
+            ...item,
+            tag: formatStatus(item.tag),
+            dateLimit: formatDate(item.dateLimit)
+        }
+    })
+    currentPage.value = 1 // 每次获取新数据后，重置分页到第一页
+}
+
+// --- 新增：监听干事下拉框改变事件 ---
+const handleOfficialChange = async (officialName) => {
+    try {
+        let response;
+        if (officialName) {
+            // 选中某个干事，拉取该干事负责的主任务
+            response = await fetchMainTasksByOfficial(officialName)
+        } else {
+            // 点击清空图标(值为 '' 或 null)，重新拉取所有主任务
+            response = await fetchMainTasks()
+        }
+        updateTableData(response.data || [])
+    } catch (error) {
+        console.error('根据干事获取任务失败:', error)
+        ElMessage.error('查询数据失败')
+    }
+}
+// ------------------------------------
+
 async function getMemberNames() {
     try {
-        // 1. 获取当前登录人的 departmentId
         const userInfoRes = await fetchUserInfo()
         const currentDeptId = userInfoRes.data?.departmentId
         
@@ -124,7 +162,6 @@ async function getMemberNames() {
             return
         }
 
-        // 2. 根据 departmentId 拉取同部门干事
         const response = await fetchAllOfficers(currentDeptId)
         if (response.data) {
             options1.value = response.data.map(item => ({
@@ -140,15 +177,7 @@ async function getMemberNames() {
 async function fetchTaskList() {
     try {
         const response = await fetchMainTasks()
-        const rawData = response.data || []
-        
-        allTableData.value = rawData.map(item => {
-            return {
-                ...item,
-                tag: formatStatus(item.tag),
-                dateLimit: formatDate(item.dateLimit)
-            }
-        })
+        updateTableData(response.data || [])
     } catch (error) {
         console.error('获取任务列表失败:', error)
     }
